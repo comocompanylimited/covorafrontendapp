@@ -78,14 +78,16 @@ const promoStyles = StyleSheet.create({
 
 // ─── Home Category Pills (sticky, below header bar) ──────────────────────────
 const HOME_PILLS = [
-  { key: 'all',       label: 'All',       categoryId: null,              categoryName: 'All Products' },
-  { key: 'dresses',   label: 'Dresses',   categoryId: 'Dresses',         categoryName: 'Dresses' },
-  { key: 'hair',      label: 'Hair',      categoryId: 'Hair',            categoryName: 'Hair' },
-  { key: 'outerwear', label: 'Outerwear', categoryId: 'Outerwear',       categoryName: 'Outerwear' },
-  { key: 'jewellery', label: 'Jewellery', categoryId: 'Jewellery',       categoryName: 'Jewellery' },
-  { key: 'shoes',     label: 'Shoes',     categoryId: 'shoes',           categoryName: 'Shoes' },
-  { key: 'tops',      label: 'Tops',      categoryId: 'Tops & Blouses',  categoryName: 'Tops & Blouses' },
-  { key: 'knitwear',  label: 'Knitwear',  categoryId: 'Knitwear',        categoryName: 'Knitwear' },
+  { key: 'all',       label: 'All',       categoryId: null,             categoryName: 'All Products' },
+  { key: 'jewellery', label: 'Jewellery', categoryId: 'Jewellery',      categoryName: 'Jewellery' },
+  { key: 'makeup',    label: 'Makeup',    categoryId: 'Makeup',         categoryName: 'Makeup' },
+  { key: 'outerwear', label: 'Outerwear', categoryId: 'Outerwear',      categoryName: 'Outerwear' },
+  { key: 'tops',      label: 'Tops',      categoryId: 'Tops & Blouses', categoryName: 'Tops & Blouses' },
+  { key: 'hair',      label: 'Hair',      categoryId: 'Hair',           categoryName: 'Hair' },
+  { key: 'skincare',  label: 'Skincare',  categoryId: 'Skincare',       categoryName: 'Skincare' },
+  { key: 'dresses',   label: 'Dresses',   categoryId: 'Dresses',        categoryName: 'Dresses' },
+  { key: 'bags',      label: 'Bags',      categoryId: 'bags',           categoryName: 'Bags' },
+  { key: 'shoes',     label: 'Shoes',     categoryId: 'shoes',          categoryName: 'Shoes' },
 ];
 
 const HomeCategoryPills = ({ navigation, active, onSelect }) => (

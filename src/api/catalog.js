@@ -108,19 +108,26 @@ export const fetchSaleProducts = async () => {
 };
 
 export const fetchHomeFeedFromApi = async () => {
-  const [allRes, featuredRes] = await Promise.allSettled([
-    apiGet(PATHS.products, { page_size: 40 }),
-    apiGet(PATHS.featured, { featured: true, page_size: 20 }),
+  // Fetch 4 different category groups in parallel for distinct home sections
+  const [jewelleryRes, dressesRes, outerwearRes, beautyRes] = await Promise.allSettled([
+    apiGet(PATHS.products, { category: 'Jewellery', page_size: 12 }),
+    apiGet(PATHS.products, { category: 'Dresses', page_size: 12 }),
+    apiGet(PATHS.products, { category: 'Outerwear', page_size: 12 }),
+    apiGet(PATHS.products, { categories: 'Skincare,Makeup,Hair', page_size: 12 }),
   ]);
 
-  const allProducts = allRes.status === 'fulfilled'
-    ? extractList(allRes.value).map(normalizeProduct).filter(Boolean)
-    : [];
-  const featuredProducts = featuredRes.status === 'fulfilled'
-    ? extractList(featuredRes.value).map(normalizeProduct).filter(Boolean)
+  const pick = (res) => res.status === 'fulfilled'
+    ? extractList(res.value).map(normalizeProduct).filter(Boolean)
     : [];
 
-  // Derive categories from product short_descriptions
+  const jewellery = pick(jewelleryRes);
+  const dresses   = pick(dressesRes);
+  const outerwear  = pick(outerwearRes);
+  const beauty    = pick(beautyRes);
+
+  // All products combined for category derivation
+  const allProducts = [...jewellery, ...dresses, ...outerwear, ...beauty];
+
   const seen = new Set();
   const categories = allProducts.reduce((acc, p) => {
     if (p.category && !seen.has(p.category)) {
@@ -131,11 +138,11 @@ export const fetchHomeFeedFromApi = async () => {
   }, []);
 
   return {
-    featured:    featuredProducts.length ? featuredProducts : allProducts.slice(0, 10),
-    newArrivals: allProducts.slice(0, 10),
-    bestSellers: featuredProducts.length ? featuredProducts : allProducts.slice(10, 20),
-    sale:        allProducts.slice(20, 30),
-    banners:     [],
+    featured:         jewellery,
+    newArrivals:      dresses,
+    bestSellers:      outerwear,
+    sale:             beauty,
+    banners:          [],
     editorialBanners: [],
     categories,
   };
