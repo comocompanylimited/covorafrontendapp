@@ -39,102 +39,101 @@ export const fetchProductBySlug = async (slug) => {
   }
 };
 
+// Categories are not on a public endpoint — extract unique category names from products
 export const fetchCategories = async () => {
-  const res = await apiGet(PATHS.categories);
-  return extractList(res).map(normalizeCategory).filter(Boolean);
+  try {
+    const res = await apiGet(PATHS.products, { page_size: 100 });
+    const seen = new Set();
+    return extractList(res)
+      .filter(p => p.short_description)
+      .reduce((acc, p) => {
+        const name = p.short_description;
+        if (!seen.has(name)) {
+          seen.add(name);
+          const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+          acc.push(normalizeCategory({ id: slug, name, slug }));
+        }
+        return acc;
+      }, []);
+  } catch {
+    return [];
+  }
 };
 
 export const fetchBrands = async () => {
-  const res = await apiGet(PATHS.brands);
-  return extractList(res).map(normalizeBrand).filter(Boolean);
+  return [];
 };
 
 export const fetchProductsByCategory = async (categorySlug, params = {}) => {
+  // categorySlug may be a slug like "tops-blouses" or a display name like "Tops & Blouses"
+  // The backend filters by short_description (display name), so convert slug back to name
   const res = await apiGet(PATHS.products, { category: categorySlug, ...params });
   return {
     results: extractList(res).map(normalizeProduct).filter(Boolean),
-    count: res?.count || extractList(res).length,
+    count: res?.count || res?.total || extractList(res).length,
     next: res?.next || null,
   };
 };
 
 export const fetchProductsByBrand = async (brandSlug, params = {}) => {
-  const res = await apiGet(PATHS.products, { brand: brandSlug, ...params });
+  const res = await apiGet(PATHS.products, { search: brandSlug, ...params });
   return {
     results: extractList(res).map(normalizeProduct).filter(Boolean),
-    count: res?.count || extractList(res).length,
+    count: res?.count || res?.total || extractList(res).length,
     next: res?.next || null,
   };
 };
 
 export const searchProducts = async (query, params = {}) => {
-  let res;
-  try {
-    res = await apiGet(PATHS.search, { q: query, search: query, ...params });
-  } catch {
-    res = await apiGet(PATHS.products, { search: query, q: query, ...params });
-  }
+  const res = await apiGet(PATHS.search, { search: query, ...params });
   return extractList(res).map(normalizeProduct).filter(Boolean);
 };
 
 export const fetchFeaturedProducts = async () => {
-  try {
-    const res = await apiGet(PATHS.featured);
-    return extractList(res).map(normalizeProduct).filter(Boolean);
-  } catch {
-    const res2 = await apiGet(PATHS.products, { is_featured: true, featured: true });
-    return extractList(res2).map(normalizeProduct).filter(Boolean);
-  }
+  const res = await apiGet(PATHS.featured, { featured: true, page_size: 20 });
+  return extractList(res).map(normalizeProduct).filter(Boolean);
 };
 
 export const fetchNewArrivals = async () => {
-  try {
-    const res = await apiGet(PATHS.newArrivals);
-    return extractList(res).map(normalizeProduct).filter(Boolean);
-  } catch {
-    const res2 = await apiGet(PATHS.products, { is_new: true, ordering: '-created_at' });
-    return extractList(res2).map(normalizeProduct).filter(Boolean);
-  }
+  const res = await apiGet(PATHS.newArrivals, { page_size: 20 });
+  return extractList(res).map(normalizeProduct).filter(Boolean);
 };
 
 export const fetchSaleProducts = async () => {
-  try {
-    const res = await apiGet(PATHS.sale);
-    return extractList(res).map(normalizeProduct).filter(Boolean);
-  } catch {
-    const res2 = await apiGet(PATHS.products, { is_sale: true, on_sale: true });
-    return extractList(res2).map(normalizeProduct).filter(Boolean);
-  }
+  const res = await apiGet(PATHS.sale, { page_size: 20 });
+  return extractList(res).map(normalizeProduct).filter(Boolean);
 };
 
 export const fetchHomeFeedFromApi = async () => {
-  try {
-    const res = await apiGet(PATHS.homeFeed);
-    const normalize = (list) => extractList(list).map(normalizeProduct).filter(Boolean);
-    return {
-      featured:    normalize(res.featured || res.featured_products || []),
-      newArrivals: normalize(res.new_arrivals || res.newArrivals || []),
-      bestSellers: normalize(res.best_sellers || res.bestSellers || res.featured || []),
-      sale:        normalize(res.sale || res.sale_products || []),
-      banners:     res.banners || res.hero_banners || [],
-      editorialBanners: res.editorial_banners || res.editorials || [],
-      categories:  (res.categories || []).map(normalizeCategory).filter(Boolean),
-    };
-  } catch {
-    const [featuredRes, newRes, saleRes, categoriesRes] = await Promise.allSettled([
-      fetchFeaturedProducts(),
-      fetchNewArrivals(),
-      fetchSaleProducts(),
-      fetchCategories(),
-    ]);
-    return {
-      featured:    featuredRes.status === 'fulfilled' ? featuredRes.value : [],
-      newArrivals: newRes.status === 'fulfilled' ? newRes.value : [],
-      bestSellers: featuredRes.status === 'fulfilled' ? featuredRes.value : [],
-      sale:        saleRes.status === 'fulfilled' ? saleRes.value : [],
-      banners:     [],
-      editorialBanners: [],
-      categories:  categoriesRes.status === 'fulfilled' ? categoriesRes.value : [],
-    };
-  }
+  const [allRes, featuredRes] = await Promise.allSettled([
+    apiGet(PATHS.products, { page_size: 40 }),
+    apiGet(PATHS.featured, { featured: true, page_size: 20 }),
+  ]);
+
+  const allProducts = allRes.status === 'fulfilled'
+    ? extractList(allRes.value).map(normalizeProduct).filter(Boolean)
+    : [];
+  const featuredProducts = featuredRes.status === 'fulfilled'
+    ? extractList(featuredRes.value).map(normalizeProduct).filter(Boolean)
+    : [];
+
+  // Derive categories from product short_descriptions
+  const seen = new Set();
+  const categories = allProducts.reduce((acc, p) => {
+    if (p.category && !seen.has(p.category)) {
+      seen.add(p.category);
+      acc.push(normalizeCategory({ id: p.categoryId, name: p.category, slug: p.categoryId }));
+    }
+    return acc;
+  }, []);
+
+  return {
+    featured:    featuredProducts.length ? featuredProducts : allProducts.slice(0, 10),
+    newArrivals: allProducts.slice(0, 10),
+    bestSellers: featuredProducts.length ? featuredProducts : allProducts.slice(10, 20),
+    sale:        allProducts.slice(20, 30),
+    banners:     [],
+    editorialBanners: [],
+    categories,
+  };
 };
