@@ -2,16 +2,15 @@ import { apiGet, extractList, isApiConfigured } from './client';
 import { normalizeProduct, normalizeCategory, normalizeBrand } from './normalize';
 
 const PATHS = {
-  products:    '/products',
-  product:     (id) => `/products/${id}`,
-  categories:  '/categories',
-  category:    (slug) => `/categories/${slug}`,
-  brands:      '/brands',
-  search:      '/products/search',
-  featured:    '/products/featured',
-  newArrivals: '/products/new-arrivals',
-  sale:        '/products/sale',
-  homeFeed:    '/home',
+  products:    '/store/products',
+  product:     (slug) => `/store/products/${slug}`,
+  categories:  '/store/products',
+  brands:      '/store/products',
+  search:      '/store/products',
+  featured:    '/store/products',
+  newArrivals: '/store/products',
+  sale:        '/store/products',
+  homeFeed:    '/store/products',
 };
 
 export const fetchProducts = async (params = {}) => {
