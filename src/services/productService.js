@@ -103,21 +103,43 @@ export const fetchProductDetail = async (idOrSlug) => {
   }
 };
 
-export const fetchCategoryProducts = async (categorySlug, params = {}) => {
+// Maps app category IDs → backend query params for /store/products
+const CATEGORY_PARAMS = {
+  new:        { page_size: 40 },
+  sale:       { page_size: 40 },
+  bestsellers:{ featured: true, page_size: 40 },
+  clothing:   { categories: 'Dresses,Tops & Blouses,Outerwear,Knitwear', page_size: 40 },
+  beauty:     { categories: 'Hair', page_size: 40 },
+  shoes:      { categories: 'Boots,Mules,Sneakers', page_size: 40 },
+  bags:       { page_size: 40 },
+  jewellery:  { category: 'Jewellery', page_size: 40 },
+  // real backend short_description values
+  Dresses:          { category: 'Dresses', page_size: 40 },
+  Hair:             { category: 'Hair', page_size: 40 },
+  Outerwear:        { category: 'Outerwear', page_size: 40 },
+  Jewellery:        { category: 'Jewellery', page_size: 40 },
+  Boots:            { category: 'Boots', page_size: 40 },
+  'Tops & Blouses': { category: 'Tops & Blouses', page_size: 40 },
+  Knitwear:         { category: 'Knitwear', page_size: 40 },
+  Mules:            { category: 'Mules', page_size: 40 },
+  Sneakers:         { category: 'Sneakers', page_size: 40 },
+};
+
+export const fetchCategoryProducts = async (categoryId, extraParams = {}) => {
   if (!isApiConfigured()) {
     await delay(300);
-    const results = mockGetByCategory(categorySlug);
-    return { results, count: results.length, next: null };
+    const results = mockGetByCategory(categoryId);
+    return { results, count: results.length, next: null, total: results.length };
   }
 
   try {
-    const res = await fetchProductsByCategory(categorySlug, params);
+    const mappedParams = CATEGORY_PARAMS[categoryId] || { category: categoryId, page_size: 40 };
+    const res = await fetchProductsByCategory(null, { ...mappedParams, ...extraParams });
     if (res.results?.length) return res;
-    const fallback = mockGetByCategory(categorySlug);
-    return { results: fallback, count: fallback.length, next: null };
+    // Empty from API — return empty rather than confusing mock data
+    return { results: [], count: 0, next: null, total: 0 };
   } catch {
-    const fallback = mockGetByCategory(categorySlug);
-    return { results: fallback, count: fallback.length, next: null };
+    return { results: [], count: 0, next: null, total: 0 };
   }
 };
 

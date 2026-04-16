@@ -65,13 +65,16 @@ export const fetchBrands = async () => {
 };
 
 export const fetchProductsByCategory = async (categorySlug, params = {}) => {
-  // categorySlug may be a slug like "tops-blouses" or a display name like "Tops & Blouses"
-  // The backend filters by short_description (display name), so convert slug back to name
-  const res = await apiGet(PATHS.products, { category: categorySlug, ...params });
+  // categorySlug is null when caller provides all params directly
+  const query = categorySlug ? { category: categorySlug, ...params } : params;
+  const res = await apiGet(PATHS.products, query);
   return {
     results: extractList(res).map(normalizeProduct).filter(Boolean),
-    count: res?.count || res?.total || extractList(res).length,
+    total: res?.total || res?.count || extractList(res).length,
+    count: res?.total || res?.count || extractList(res).length,
     next: res?.next || null,
+    page: res?.page || 1,
+    page_size: res?.page_size || 40,
   };
 };
 

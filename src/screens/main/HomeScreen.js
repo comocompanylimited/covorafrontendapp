@@ -78,13 +78,14 @@ const promoStyles = StyleSheet.create({
 
 // ─── Home Category Pills (sticky, below header bar) ──────────────────────────
 const HOME_PILLS = [
-  { key: 'new',       label: 'New In',   categoryId: 'new',       categoryName: 'New In' },
-  { key: 'clothing',  label: 'Clothing', categoryId: 'clothing',  categoryName: 'Clothing' },
-  { key: 'beauty',    label: 'Beauty',   categoryId: 'beauty',    categoryName: 'Beauty' },
-  { key: 'shoes',     label: 'Shoes',    categoryId: 'shoes',     categoryName: 'Shoes' },
-  { key: 'bags',      label: 'Bags',     categoryId: 'bags',      categoryName: 'Bags' },
-  { key: 'jewellery', label: 'Jewellery',categoryId: 'jewellery', categoryName: 'Jewellery' },
-  { key: 'sale',      label: 'Sale',     categoryId: 'sale',      categoryName: 'Sale' },
+  { key: 'all',       label: 'All',       categoryId: null,              categoryName: 'All Products' },
+  { key: 'dresses',   label: 'Dresses',   categoryId: 'Dresses',         categoryName: 'Dresses' },
+  { key: 'hair',      label: 'Hair',      categoryId: 'Hair',            categoryName: 'Hair' },
+  { key: 'outerwear', label: 'Outerwear', categoryId: 'Outerwear',       categoryName: 'Outerwear' },
+  { key: 'jewellery', label: 'Jewellery', categoryId: 'Jewellery',       categoryName: 'Jewellery' },
+  { key: 'shoes',     label: 'Shoes',     categoryId: 'shoes',           categoryName: 'Shoes' },
+  { key: 'tops',      label: 'Tops',      categoryId: 'Tops & Blouses',  categoryName: 'Tops & Blouses' },
+  { key: 'knitwear',  label: 'Knitwear',  categoryId: 'Knitwear',        categoryName: 'Knitwear' },
 ];
 
 const HomeCategoryPills = ({ navigation, active, onSelect }) => (
@@ -927,7 +928,7 @@ const HomeScreen = ({ navigation }) => {
               <SectionHeader
                 title="New Arrivals"
                 subtitle="Just landed this week"
-                onViewAll={() => navigation.navigate('CategoryLanding', { categoryId: 'new', categoryName: 'New In' })}
+                onViewAll={() => navigation.navigate('CategoryLanding', { categoryId: null, categoryName: 'All Products' })}
               />
               <ProductRow
                 products={newArrivals.length ? newArrivals : PRODUCTS.slice(0, 5)}
@@ -953,6 +954,7 @@ const HomeScreen = ({ navigation }) => {
                 subtitle="Most loved by our community"
                 onViewAll={() => navigation.navigate('CategoryLanding', { categoryId: 'bestsellers', categoryName: 'Best Sellers' })}
               />
+
               <ProductRow
                 products={bestSellers.length ? bestSellers : PRODUCTS.slice(1, 6)}
                 navigation={navigation}

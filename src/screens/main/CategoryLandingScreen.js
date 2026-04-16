@@ -16,7 +16,6 @@ import { Feather } from '@expo/vector-icons';
 import { Colors, Spacing } from '../../theme';
 import { useApp } from '../../hooks/useAppContext';
 import { ProductCard, FilterModal, SortModal } from '../../components/common';
-import { PRODUCTS, getProductsByCategory } from '../../data/mockProducts';
 import { fetchCategoryProducts } from '../../services/productService';
 
 const { width } = Dimensions.get('window');
@@ -89,36 +88,28 @@ const CategoryLandingScreen = ({ navigation, route }) => {
   const [headerH,       setHeaderH]       = useState(HEADER_SEED_H);
   const [sourceProducts, setSourceProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   const searchRef = useRef(null);
+  const PAGE_SIZE = 40;
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       setLoadingProducts(true);
       setLoadError(null);
+      setPage(1);
       try {
-        let results;
-        if (!categoryId) {
-          results = PRODUCTS;
-        } else if (categoryId === 'new') {
-          results = PRODUCTS.filter(p => p.isNew);
-        } else if (categoryId === 'sale') {
-          results = PRODUCTS.filter(p => p.isSale);
-        } else if (categoryId === 'bestsellers') {
-          results = PRODUCTS.filter(p => p.isBestSeller);
-        } else {
-          const res = await fetchCategoryProducts(categoryId);
-          results = res.results;
-        }
-        if (!cancelled) setSourceProducts(results);
-      } catch (err) {
+        const res = await fetchCategoryProducts(categoryId || null, { page: 1, page_size: PAGE_SIZE });
         if (!cancelled) {
-          setLoadError(err.message);
-          const fallback = getProductsByCategory(categoryId);
-          setSourceProducts(fallback.length ? fallback : PRODUCTS);
+          setSourceProducts(res.results);
+          setTotalCount(res.total || res.count || res.results.length);
         }
+      } catch (err) {
+        if (!cancelled) setLoadError(err.message);
       } finally {
         if (!cancelled) setLoadingProducts(false);
       }
@@ -126,6 +117,24 @@ const CategoryLandingScreen = ({ navigation, route }) => {
     load();
     return () => { cancelled = true; };
   }, [categoryId]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || loadingProducts) return;
+    if (sourceProducts.length >= totalCount) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const res = await fetchCategoryProducts(categoryId || null, { page: nextPage, page_size: PAGE_SIZE });
+      if (res.results.length) {
+        setSourceProducts(prev => [...prev, ...res.results]);
+        setPage(nextPage);
+      }
+    } catch {
+      // silently ignore load-more errors
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, loadingProducts, sourceProducts.length, totalCount, page, categoryId]);
 
   const filteredProducts = useMemo(() => applyFilters(sourceProducts, filters, sortId), [sourceProducts, filters, sortId]);
   const visibleProducts  = useMemo(() => searchProducts(filteredProducts, searchQuery), [filteredProducts, searchQuery]);
@@ -170,13 +179,19 @@ const CategoryLandingScreen = ({ navigation, route }) => {
           data={visibleProducts}
           numColumns={3}
           keyExtractor={item => item.id}
-          // Top padding = measured header height so first row clears the floating header
           contentContainerStyle={[S.grid, { paddingTop: headerH + 8 }]}
           columnWrapperStyle={S.gridRow}
           showsVerticalScrollIndicator={false}
           initialNumToRender={15}
           maxToRenderPerBatch={15}
           windowSize={5}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={loadingMore ? (
+            <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+              <ActivityIndicator size="small" color={Colors.gold} />
+            </View>
+          ) : null}
           renderItem={({ item }) => (
             <ProductCard
               product={item}
@@ -212,7 +227,7 @@ const CategoryLandingScreen = ({ navigation, route }) => {
             <Text style={S.title} numberOfLines={1}>{categoryName}</Text>
             <Text style={S.subtitle}>
               {visibleProducts.length}
-              {(hasSearch || filterCount > 0) ? ` of ${sourceProducts.length}` : ''} items
+              {(hasSearch || filterCount > 0) ? ` of ${sourceProducts.length}` : totalCount > sourceProducts.length ? ` of ${totalCount}` : ''} items
             </Text>
           </View>
 
